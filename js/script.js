@@ -1,4 +1,4 @@
-const baseUrl = 'http://sb-cats.herokuapp.com/api/2/Qwertyuiop0909'
+const baseUrl = 'https://sb-cats.herokuapp.com/api/2/Qwertyuiop0909'
 
 const $field = document.querySelector('[data-field]') 
 
