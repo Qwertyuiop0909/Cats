@@ -178,7 +178,7 @@ class API{
             });
             const result = await responce.json();
 
-            if (responce.status !== 200){
+            if (responce.message !== 'ok'){
                 throw new Error(result.message)
             }
 
@@ -200,7 +200,7 @@ class API{
             });
             const result = await responce.json();
 
-            if (responce.status !== 200){
+            if (responce.message !== 'ok'){
                 throw new Error(result.message)
             }
 
