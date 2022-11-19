@@ -3,6 +3,7 @@ const baseUrl = 'https://sb-cats.herokuapp.com/api/2/Qwertyuiop0909'
 const $field = document.querySelector('[data-field]') 
 
 let openedId = 0;
+let editData = {};
 
 $field.addEventListener('click', (event) => {
     switch(event.target.dataset.action){
@@ -20,8 +21,11 @@ $field.addEventListener('click', (event) => {
             console.log(`opened ${event.target}`)
             openedId = event.target.closest('[data-card_id]').dataset.card_id
             api.getCat(openedId)
-                .then((responce) => document.body.lastElementChild.insertAdjacentHTML('beforebegin', generateModal(responce.data)))
-                .then(() => {
+                .then((responce) => {
+                    document.body.lastElementChild.insertAdjacentHTML('beforebegin', generateModal(responce.data))
+
+                    let currentData = responce.data;
+
                     const $closeModalButton1 = document.querySelector('#btn1')
 
                     $closeModalButton1.addEventListener('click', (event) => {
@@ -29,11 +33,31 @@ $field.addEventListener('click', (event) => {
                         openedId = 0;  
                     })
                     const $updateButton = document.querySelector('[data-action="edit"]')
+                    
+                    let arr = document.querySelectorAll('.myModaledit input, .myModaledit textarea')
 
                     $updateButton.addEventListener('click', (event) => {
+                        console.log(event)
+                        for (let i of arr){
+                            // console.log(i)
+                            // console.log(Object.entries(currentData))
+                            
+                            if(i.name === 'favourite'){
+                                i.checked = Object.entries(currentData).find((elem) => elem[0] === i.name)[1]
+                            }
+                            else i.value = Object.entries(currentData).find((elem) => elem[0] === i.name)[1]                    
+                        }
                         event.target.closest(".myModal").remove()
                         document.querySelector('.myModaledit').classList.remove('hidden')
                     })
+
+                    arr.forEach((elem) => elem.addEventListener('change', (event) => {
+                        console.log(typeof elem.name)
+                        if(elem.name === 'favourite'){
+                            editData[elem.name] = elem.checked
+                        }
+                        else editData[elem.name] = elem.value
+                    }))
                 })
                 .catch((error) => console.log(`Ошибка: ${error}`))
             break
@@ -60,12 +84,13 @@ $closeModalButton.forEach((btn) => btn.addEventListener('click', (event) => {
 document.forms.addCat.addEventListener('submit', (event) =>{
     event.preventDefault()
     
-    const formD = new FormData(document.forms.addCat)
+    const formD = new FormData(event.target)
     const Data = Object.fromEntries(formD.entries())
+    console.log(formD, Data)
     Data.id = +Data.id
     Data.age = +Data.age
     Data.rate = +Data.rate
-    Data.favorite = Data.favorite == 'on'
+    Data.favourite = document.querySelector('[type="checkbox"]').checked
     api.addCat(JSON.stringify(Data))
         .then(() => {
             $field.insertAdjacentHTML("beforeend", generateHTMLCat(Data))
@@ -74,26 +99,43 @@ document.forms.addCat.addEventListener('submit', (event) =>{
         .catch((error) => console.log(`Ошибка: ${error}`)) 
 })
 
-document.forms.updateCat.addEventListener('submit', (event) =>{
-    event.preventDefault()
-    
-    const formD = new FormData(document.forms.updateCat)
-    const Data = Object.fromEntries(formD.entries())
-    Data.id = +Data.id
-    Data.age = +Data.age
-    Data.rate = +Data.rate
-    Data.favorite = Data.favorite == 'on'
-    let arr = document.querySelectorAll('.myModalEdit .mb-3')
-    console.log(Data, arr)
-    for (let i = 2; i < 7; i++){
-        arr[i-2].value = Data[i];
+document.forms.addCat.addEventListener('change', (event) => {
+    console.log(event)
+    const currentInput = event.target
+    if (currentInput.name === 'btn') return
+    if (currentInput.type === 'checkbox') {
+        localStorage.setItem(currentInput.name, currentInput.checked)
+        return
     }
-    // api.updateCat(JSON.stringify(Data))
-    //     .then(() => {
-    //         $field.insertAdjacentHTML("beforeend", generateHTMLCat(Data))
-    //         document.querySelector('.myModaledit').classList.add('hidden')
-    //     })
-    //     .catch((error) => console.log(`Ошибка: ${error}`)) 
+    if (typeof(localStorage.getItem(currentInput.name)) !== 'null'){
+        localStorage[currentInput.name] = currentInput.value
+    }
+    else localStorage.setItem(currentInput.type, currentInput.value)
+})
+
+document.forms.updateCat.addEventListener('submit', (event) => {
+    event.preventDefault()
+
+    const Data = {}
+    Object.assign(Data, editData);
+    console.log(Data)
+    api.updateCat(openedId, JSON.stringify(Data))
+        .then(() => {
+            Object.entries(Data).forEach((elem) => {
+                if(elem[0] === 'description'){
+                    document.querySelector(`[data-card_id='${openedId}'] p`).textContent = elem[1]
+                }
+                else if (elem[0] === 'age'){
+                    p = document.querySelector(`[data-card_id='${openedId}'] h5`)
+                    p.textContent = p.textContent.replace(/age:\d{1,}\)/,`age:${elem[1]})`)
+                }
+                else if (elem[0] === 'img_link'){
+                    document.querySelector(`[data-card_id='${openedId}'] img`).src = elem[1]
+                }
+            })
+            document.querySelector('.myModaledit').classList.add('hidden')
+        })
+        .catch((error) => console.log(`Ошибка: ${error}`)) 
 })
 
 const generateHTMLCat = (cat) => `<div data-card_id=${cat.id} class="card" style="width: 18rem;">
@@ -116,7 +158,7 @@ const generateModal = (cat) => `<div class="myModal myModalopen card">
   <h5 class="card-title">-Name: ${cat.name},</h5>
   <h5 class="card-title">-Rate: ${cat.rate},</h5>
   <h5 class="card-title">-Description: ${cat.description},</h5>
-  <h5 class="card-title">-Favorite: ${cat.rate ? 'Yes' : 'No'},</h5>
+  <h5 class="card-title">-Favourite: ${cat.favourite ?? false},</h5>
   <h5 class="card-title">-Img link: ${cat.img_link}</h5>
   <button data-action="edit" class="btn btn-primary">Edit</button></a>
 </div>
@@ -178,7 +220,7 @@ class API{
             });
             const result = await responce.json();
 
-            if (responce.message !== 'ok'){
+            if (result.message !== 'ok'){
                 throw new Error(result.message)
             }
 
@@ -189,7 +231,7 @@ class API{
         }
     }
 
-    async updateData(ID){
+    async updateCat(ID, data){
         try{
             const responce = await fetch(`${this.url}/update/${ID}`, {
                 method: 'PUT',
@@ -200,7 +242,7 @@ class API{
             });
             const result = await responce.json();
 
-            if (responce.message !== 'ok'){
+            if (result.message !== 'ok'){
                 throw new Error(result.message)
             }
 
