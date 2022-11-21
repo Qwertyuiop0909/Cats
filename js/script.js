@@ -42,7 +42,7 @@ $field.addEventListener('click', (event) => {
                             // console.log(i)
                             // console.log(Object.entries(currentData))
                             
-                            if(i.name === 'favourite'){
+                            if(i.name === 'favourite'){ 
                                 i.checked = Object.entries(currentData).find((elem) => elem[0] === i.name)[1]
                             }
                             else i.value = Object.entries(currentData).find((elem) => elem[0] === i.name)[1]                    
@@ -70,6 +70,13 @@ $field.addEventListener('click', (event) => {
 const $addButton = document.querySelector('[data-action="add"]')
 
 $addButton.addEventListener('click', (event) => {
+    let arr = document.querySelectorAll('.myModaladd input, .myModaladd textarea')
+    for (let i of arr){
+        if(i.name === 'favourite'){ 
+            i.checked = localStorage[i.name] ?? false
+        }
+        else i.value = localStorage.getItem(i.name) ?? ''                    
+    }
     document.querySelector('.myModaladd').classList.remove('hidden')
 })
 
